@@ -9,7 +9,7 @@ Generates alignment metrics and plots for NEXTFLEX small RNA libraries
 
 ## Installation instructions
 
-Create executable to run on local machine the standard way with the package manager:
+Create executable to run on local machine using the `julia` library `PackageCompiler`:
 
 ```julia
 using Pkg
@@ -21,7 +21,7 @@ Note: To use PackageCompiler a C-compiler needs to be available.
 using PackageCompiler
 Pkg.generate("small_RNA_analysis")
 ```
-This will create a small RNA module which contains a Project.toml file and an src folder.
+This will create a small RNA module which contains a `Project.toml` file and an `src` folder.
 Change directory into the newly created package and activate the new environment.
 
 ```julia
