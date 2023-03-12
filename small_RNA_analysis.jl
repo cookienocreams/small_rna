@@ -102,7 +102,7 @@ Create dictionary with each sample name and its read count.
 
 Calculate the percent dimer present in a given fastq.
 
-Calculate the average Q score for a given fastq.Divide sum of Unicode converted quality 
+Calculate the average Q score for a given fastq. Divide sum of Unicode converted quality 
 strings by the number of quality strings.
 
 #Example
@@ -196,7 +196,7 @@ function DetermineLibraryType(Fastqs::Vector{String}
         percent_v3_dimer = 100 * v3_dimer_count / sample_read_count
         percent_v4_dimer = 100 * v4_dimer_count / sample_read_count
 
-        #Percentage cutoffs are somewhat arbitrary, though should hold for most cases
+        #Percentage cutoff is somewhat arbitrary, though should hold for most cases
         if percent_v3_miRNA_library > 5
             library_type[sample_name] = "v3"
             dimer_count_dict[sample_name] = percent_v3_dimer
@@ -219,6 +219,10 @@ end
                     )
 
 Trim the 3' adapter from each read.
+
+V3 Read 1 Setup:\n
+               5' Adapter            -        Insert          -     3' Adapter      
+GATCGTCGGACTGTAGAACTCTGAACNNNN - TGTCAGTTTGTCAAATACCCCA - NNNNTGGAATTCTCGGGTGCCAAGG 
 
 V4 Read 1 Setup:\n
                5' Adapter            -        Insert          -     3' Adapter      
@@ -299,12 +303,12 @@ Create dataframe containing all aligned miRNA and the number of times they appea
 function GenerateMiRNACounts(SAM_File::String)
 	miRNA_names_list = Vector{String}()
 	open(SAM_File, "r") do sam_file
-		for line in eachline(sam_file)
-			miRNA_name = match(r"0\s+\Kh[a-z-A-Z0-9]+", line)
-			if !isnothing(miRNA_name)
-				push!(miRNA_names_list, miRNA_name.match)
-			end
+	    for line in eachline(sam_file)
+		miRNA_name = match(r"0\s+\Kh[a-z-A-Z0-9]+", line)
+		if !isnothing(miRNA_name)
+		    push!(miRNA_names_list, miRNA_name.match)
 		end
+	    end
 	end
 	miRNA_counts_dict = countmap(miRNA_names_list)
 	miRNA_counts_dataframe = DataFrame([collect(keys(miRNA_counts_dict)), collect(values(miRNA_counts_dict))], [:name, :count])
@@ -327,6 +331,13 @@ The bowtie2 output SAM is input into function to generate miRNA read counts.
 julia> miRNADiscoveryCalculation(["sample1.cut.fastq","sample2.cut.fastq","sample3.cut.fastq"]
                                 , ["sample1", "sample2", "sample3"])
 3-element Vector{DataFrame}:
+469×2 DataFrame
+ Row │ name             count
+     │ String           Int64
+─────┼────────────────────────
+   1 │ hsa-miR-1307-3p      1
+   2 │ hsa-miR-425-5p      58
+   3 │ hsa-miR-488-5p       2
  [...]
 
  3-element Vector{String}:
@@ -503,6 +514,10 @@ function CalculateReadLengthDistribution(SAM_Files::Vector{String}
     for sam_file in SAM_Files
         sample_name = Sample_Names[sample_tracker]
 
+	#=
+        If the SAM file is empty or almost empty, it will cause errors 
+        downstream so the script exits.
+        =#
         read_length_distibution = 
         try
             read(pipeline(
@@ -515,10 +530,6 @@ function CalculateReadLengthDistribution(SAM_Files::Vector{String}
             , String
             )
         catch
-            #=
-            If the SAM file is empty or almost empty, it will cause errors 
-            downstream so the script exits.
-            =#
             println("Error, SAM file contains no read length distribution")
             println("Exiting program...")
             exit()
@@ -672,7 +683,7 @@ function AlignWithBowtie2(Fastq_File::String, Read_Count_Dict::Dict{String, Int6
         -o $sample_name.aligned.metrics.sam
         $sam_filename`
         , devnull)
-        ,wait = false
+        , wait = false
         ))
 
         #Convert SAM file back into a fastq
@@ -683,8 +694,8 @@ function AlignWithBowtie2(Fastq_File::String, Read_Count_Dict::Dict{String, Int6
         -n 
         $sample_name.aligned.metrics.sam`
         , stdout = Fastq_File
-        ),wait = false
-	    ))
+        ), wait = false
+	))
 
         percent_alignment = round(100 * aligned_reads / Read_Count_Dict[sample_name], digits = 3)
         metrics_dict[reference_RNA] = percent_alignment
@@ -732,7 +743,7 @@ function CalculateMetrics(Trimmed_Fastqs::Vector{String}
     for fastq_file in Trimmed_Fastqs
         sample_name = Sample_Names[sample_tracker]
 
-        #Calculate q_score score
+        #Get sample q_score
         average_q_score = Q_Score_Dict[sample_name]
 
         #Gather the number of canonical dimer reads
@@ -796,7 +807,7 @@ function ViolinPlotMetrics(Metrics_File::String)
     , "Creating Violin Plots..."
     )
     
-    #Gather each metric's column for plotting
+    #Gather each metric's column data for plotting
     metrics_columns(a) = [number for number in metrics_file[!, a]]
 
     #Make empty figure and set x and y axes
@@ -817,7 +828,8 @@ function ViolinPlotMetrics(Metrics_File::String)
         #Make violin plot with combined sample data
         CairoMakie.violin!(fig[1, column]
         , repeat([x[column]]
-        , first(size(metrics_file)))
+        , first(size(metrics_file))
+	)
         , y[column]
         , show_median=true
         )
@@ -1012,6 +1024,7 @@ function PlotClustering(Common_miRNA_File::String)
     miRNA_names = common_miRNA_counts[!, :miRNA]
 
     #There must be at least two samples in order to perform the principal component analysis
+    #Must also have at least one miRNA in common
     if last(size(common_miRNA_counts)) > 2 && first(size(common_miRNA_counts)) > 1
         common_miRNA_counts_matrix = Matrix{Float64}(select(common_miRNA_counts, Not([:miRNA])))
 
@@ -1069,11 +1082,11 @@ function PlotClustering(Common_miRNA_File::String)
             choose number of clusters based on the number of principal components.
             =#
             distance_matrix = pairwise(Euclidean(), embedding, embedding)
-            kmeans_cluster_colors = kmedoids(distance_matrix, first(size(transposed_transformed_counts)))
+            kmedoids_cluster_colors = kmedoids(distance_matrix, first(size(transposed_transformed_counts)))
             Plots.scatter(size = (1200, 800), embedding[1, :], embedding[2, :]
                                         , title="Common miRNA: UMAP", left_margin = 13mm
                                         , bottom_margin = 10mm, dpi = 300
-                                        , marker_z = kmeans_cluster_colors.assignments
+                                        , marker_z = kmedoids_cluster_colors.assignments
                                         , color = :lighttest, xlabel = "UMAP1", ylabel = "UMAP2"
                                         , titlefont = (16, "Computer Modern"), leg = false
                                         , markersize = 9, markerstrokewidth = 0.1)
@@ -1091,7 +1104,7 @@ end
 
 The common miRNA counts are used to calculate the Pearson's correlation coefficient.
 
-Filter the qPCR data to remove measurements without a quantification cycle (Cq) value.
+Filter the qPCR data* to remove measurements without a quantification cycle (Cq) value.
 Compare the filtered list with the miRNA present in the common miRNA files and filter each 
 common miRNA file. Calculate the average Cq value for a given miRNA from each replicate
 and determine the Pearson's correlation coefficient.
