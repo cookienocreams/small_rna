@@ -24,4 +24,4 @@ Step 7: Replace script in small_RNA_analysis/src with small_RNA_analysis.jl in t
 
 Step 8: PackageCompiler.create_app("/path/to/small_RNA_analysis", "/home/user/sRNA_app", incremental=true, precompile_execution_file="/path/to/small_RNA_analysis/src/small_RNA_analysis.jl")
 
-The app can be run using the small_RNA_analysis executabile in the /home/user/sRNA_app/bin folder.
+The app can be run using the small_RNA_analysis executabile in the /home/user/sRNA_app/bin folder in a folder containing fastqs to be analyzed. Note that currently the data and qpcr_raw_data.csv files must be downloaded and placed into the analysis folder too.
