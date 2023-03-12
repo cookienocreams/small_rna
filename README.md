@@ -21,7 +21,7 @@ Note: To use PackageCompiler a C-compiler needs to be available.
 using PackageCompiler
 Pkg.generate("small_RNA_analysis")
 ```
-This will create a small RNA module which contains a `Project.toml` file and an `src` folder.
+This will create a small RNA module which contains a `Project.toml` file and a `src` folder.
 Change directory into the newly created package and activate the new environment.
 
 ```julia
@@ -37,7 +37,7 @@ Once the libraries are installed, copy the `small_RNA_analysis.jl` in this respo
 The last step is to create the precompiled executable. Make sure to set the correct paths for your machine.
 
 ```julia
-PackageCompiler.create_app("/path/to/small_RNA_analysis", "/home/user/sRNA_app", incremental=true, precompile_execution_file="/path/to/small_RNA_analysis/src/small_RNA_analysis.jl")
+PackageCompiler.create_app("/path/to/small_RNA_analysis", "/home/user/sRNA_app", incremental=true, precompile_execution_file="/path/to/small_RNA_analysis/src/small_RNA_analysis.jl", include_lazy_artifacts=true)
 ```
 
 The app can be run using the small_RNA_analysis executabile in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the analysis folder too.
