@@ -1,11 +1,11 @@
 # NEXTFLEX_SRNA_Analysis
 Generates alignment metrics and plots for NEXTFLEX small RNA libraries
 
-Script dependencies:
-bowtie2
-samtools
-cutadapt
-ghostscript - install with sudo apt install ghostscript
+Script dependencies
+- bowtie2
+- samtools
+- cutadapt
+- ghostscript - install with sudo apt install ghostscript
 
 Create executable to run on local machine:
 Step 1: using Pkg; Pkg.add("PackageCompiler")
