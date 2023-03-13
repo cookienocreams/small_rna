@@ -5,7 +5,6 @@ Generates alignment metrics and plots for NEXTFLEX small RNA libraries
 - bowtie2
 - samtools
 - cutadapt
-- ghostscript - install with `sudo apt install ghostscript`
 
 ## Installation instructions
 
