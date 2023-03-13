@@ -5,7 +5,7 @@ Generates alignment metrics and plots for NEXTFLEX small RNA libraries
 - bowtie2
 - samtools
 - cutadapt
-- ghostscript - install with sudo apt install ghostscript
+- ghostscript - install with `sudo apt install ghostscript`
 
 ## Installation instructions
 
@@ -46,6 +46,5 @@ The app can be run using the small_RNA_analysis executabile in the `/home/user/s
 cd fastqs
 /home/user/sRNA_app/bin/small_RNA_analysis
 ```
-The first time the program is run, it will need to download dependencies. This will only occur once.
 
 *qPCR data from here: Maguire, S.et al. (2020). A low-bias and sensitive small RNA library preparation method using randomized splint ligation. Nucleic Acids Research, 48(14). https://doi.org/10.1093/nar/gkaa480. The data is for human brain samples, but can be swapped for qPCR data for other sample types.
