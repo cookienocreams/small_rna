@@ -22,6 +22,7 @@ using GZip
 using UMAP
 using Clustering
 using Distances
+using PDFmerger
 
 """
     CaptureTargetFiles(Files_To_Capture::String)
@@ -331,7 +332,7 @@ The bowtie2 output SAM is input into function to generate miRNA read counts.
 julia> miRNADiscoveryCalculation(["sample1.cut.fastq","sample2.cut.fastq","sample3.cut.fastq"]
                                 , ["sample1", "sample2", "sample3"])
 3-element Vector{DataFrame}:
-469×2 DataFrame
+469x2 DataFrame
  Row │ name             count
      │ String           Int64
 ─────┼────────────────────────
@@ -479,15 +480,8 @@ function PlotMiRNACounts(miRNA_Counts_Dfs::Vector{DataFrame}
 
     pdf_miRNA_files::Vector{String} = CaptureTargetFiles("_miRNA_counts.pdf")
 
-    #Use ghostscript to merge output PDFs into one file
-    run(`gs 
-    -q 
-    -dBATCH 
-    -dNOPAUSE 
-    -sDEVICE=pdfwrite 
-    -sOutputFile=Small_RNA_miRNA_plots.pdf 
-    $pdf_miRNA_files`
-    )
+    #Merge output PDFs into one file
+    merge_pdfs([pdf_miRNA_files...], "Small_RNA_miRNA_plots.pdf")
     
     #Remove individual sample plots
     TrashRemoval(pdf_miRNA_files)
@@ -602,14 +596,7 @@ function PlotFragmentLengths(Length_Files::Vector{String}
 
     pdf_length_files::Vector{String} = CaptureTargetFiles("_fragment_lengths.pdf")
 
-    run(`gs 
-    -q 
-    -dBATCH 
-    -dNOPAUSE 
-    -sDEVICE=pdfwrite 
-    -sOutputFile=Small_RNA_fragment_length_plots.pdf 
-    $pdf_length_files`
-    )
+    merge_pdfs([pdf_length_files...], "Small_RNA_fragment_length_plots.pdf")
 
     TrashRemoval(pdf_length_files)
 end
@@ -903,14 +890,7 @@ function PlotMetrics(Metrics_File::String, Library_Type::Dict{String, String}
 
     pdf_metrics_files::Vector{String} = CaptureTargetFiles("_metrics.pdf")
 
-    run(`gs 
-    -q 
-    -dBATCH 
-    -dNOPAUSE 
-    -sDEVICE=pdfwrite 
-    -sOutputFile=Small_RNA_metrics_plots.pdf 
-    $pdf_metrics_files`
-    )
+    merge_pdfs([pdf_metrics_files...], "Small_RNA_metrics_plots.pdf")
     
     TrashRemoval(pdf_metrics_files)
 end
