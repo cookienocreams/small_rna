@@ -12,36 +12,29 @@ Create executable to run on local machine using the `julia` library `PackageComp
 
 You will need to have Julia installed on your computer before starting. Julia can be installed from here: https://julialang.org/downloads/
 
+Download the git repository using git or manually and change into the repository folder.
+```bash
+git clone https://github.com/cookienocreams/NEXTFLEX_SRNA_Analysis.git small_RNA_analysis
+cd small_RNA_analysis
+```
+Activate the downloaded `julia` environment.
 ```julia
 using Pkg
-Pkg.add("PackageCompiler")
-```
-Note: To use PackageCompiler a C-compiler needs to be available.
-
-```julia
-using PackageCompiler
-Pkg.generate("small_RNA_analysis")
-```
-This will create a small RNA module which contains a `Project.toml` file and a `src` folder.
-Change directory into the newly created package and activate the new environment.
-
-```julia
-cd("small_RNA_analysis")
 Pkg.activate("./")
 ```
 The next step is to install all libraries and their dependencies.
-
 ```julia
-Pkg.add.(["CairoMakie", "CSV", "DataFrames", "ProgressMeter", "MultivariateStats", "StatsBase", "StatsPlots", "Statistics", "MLBase", "GLM", "Measures", "GZip", "UMAP", "Clustering", "Distances", "PDFmerger"])
+Pkg.instantiate()
 ```
-Once the libraries are installed, copy the `small_RNA_analysis.jl` in this respository into the `small_RNA_analysis/src` folder, replacing the auto-generated file.
+
 The last step is to create the precompiled executable. Make sure to set the correct paths for your machine.
 
 ```julia
-PackageCompiler.create_app("/path/to/small_RNA_analysis", "/home/user/sRNA_app", incremental=true, precompile_execution_file="/path/to/small_RNA_analysis/src/small_RNA_analysis.jl", include_lazy_artifacts=true)
+using PackageCompiler
+PackageCompiler.create_app("./", "/home/user/sRNA_app", incremental=true, precompile_execution_file="./src/small_RNA_analysis.jl", include_lazy_artifacts=true)
 ```
 
-The app can be run using the small_RNA_analysis executable in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the analysis folder too.
+The app can be run using the small_RNA_analysis executable in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the folder with the fastqs to be analyzed too.
 
 ```bash
 cd fastqs
