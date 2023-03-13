@@ -301,20 +301,20 @@ end
 Create dataframe containing all aligned miRNA and the number of times they appear.
 """
 function GenerateMiRNACounts(SAM_File::String)
-	miRNA_names_list = Vector{String}()
-	open(SAM_File, "r") do sam_file
-	    for line in eachline(sam_file)
-		miRNA_name = match(r"0\s+\Kh[a-z-A-Z0-9]+", line)
-		if !isnothing(miRNA_name)
-		    push!(miRNA_names_list, miRNA_name.match)
-		end
+    miRNA_names_list = Vector{String}()
+    open(SAM_File, "r") do sam_file
+	for line in eachline(sam_file)
+	    miRNA_name = match(r"0\s+\Kh[a-z-A-Z0-9]+", line)
+	    if !isnothing(miRNA_name)
+	        push!(miRNA_names_list, miRNA_name.match)
 	    end
 	end
-	miRNA_counts_dict = countmap(miRNA_names_list)
-	miRNA_counts_dataframe = DataFrame([collect(keys(miRNA_counts_dict)), collect(values(miRNA_counts_dict))], [:name, :count])
-	sort!(miRNA_counts_dataframe, :2, rev = true)
+    end
+    miRNA_counts_dict = countmap(miRNA_names_list)
+    miRNA_counts_dataframe = DataFrame([collect(keys(miRNA_counts_dict)), collect(values(miRNA_counts_dict))], [:name, :count])
+    sort!(miRNA_counts_dataframe, :2, rev = true)
 
-	return miRNA_counts_dataframe
+    return miRNA_counts_dataframe
 end
 
 """
