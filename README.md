@@ -10,6 +10,8 @@ Generates alignment metrics and plots for NEXTFLEX small RNA libraries
 
 Create executable to run on local machine using the `julia` library `PackageCompiler`:
 
+You will need to have Julia installed on your computer before starting. Julia can be installed from here: https://julialang.org/downloads/
+
 ```julia
 using Pkg
 Pkg.add("PackageCompiler")
@@ -39,7 +41,7 @@ The last step is to create the precompiled executable. Make sure to set the corr
 PackageCompiler.create_app("/path/to/small_RNA_analysis", "/home/user/sRNA_app", incremental=true, precompile_execution_file="/path/to/small_RNA_analysis/src/small_RNA_analysis.jl", include_lazy_artifacts=true)
 ```
 
-The app can be run using the small_RNA_analysis executabile in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the analysis folder too.
+The app can be run using the small_RNA_analysis executable in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the analysis folder too.
 
 ```bash
 cd fastqs
