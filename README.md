@@ -31,7 +31,7 @@ Pkg.activate("./")
 The next step is to install all libraries and their dependencies.
 
 ```julia
-Pkg.add.(["CairoMakie", "CSV", "DataFrames", "ProgressMeter", "MultivariateStats", "StatsBase", "StatsPlots", "Statistics", "MLBase", "GLM", "Measures", "GZip", "UMAP", "Clustering", "Distances"])
+Pkg.add.(["CairoMakie", "CSV", "DataFrames", "ProgressMeter", "MultivariateStats", "StatsBase", "StatsPlots", "Statistics", "MLBase", "GLM", "Measures", "GZip", "UMAP", "Clustering", "Distances", "PDFmerger"])
 ```
 Once the libraries are installed, copy the `small_RNA_analysis.jl` in this respository into the `small_RNA_analysis/src` folder, replacing the auto-generated file.
 The last step is to create the precompiled executable. Make sure to set the correct paths for your machine.
