@@ -42,3 +42,5 @@ cd fastqs
 ```
 
 *qPCR data from here: Maguire, S.et al. (2020). A low-bias and sensitive small RNA library preparation method using randomized splint ligation. Nucleic Acids Research, 48(14). https://doi.org/10.1093/nar/gkaa480. The data is for human brain samples, but can be swapped for qPCR data for other sample types.
+
+You can also download a pre-made executable folder here: https://drive.google.com/file/d/1mQ6V5OG9qdl_X2I37MqgM1fwHpjK5xpT/view?usp=share_link
