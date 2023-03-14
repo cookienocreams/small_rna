@@ -78,7 +78,7 @@ julia> GetReadQScore!("FGFEEE<FC<FGGGGGGGGGGGFFGFG8<@8CFFGF8EFGGCGFGGGGGGFG", [3
 """
 function GetReadQScore!(Line::String, Q_Score_List::Vector{Number})
 
-    #Find average read quality by converting quality encodings to Unicode numbers
+    #Find read quality by converting quality encodings to Unicode numbers
     q_score = sum(codeunits(Line)) / length(Line)
 
     #Add Q score to list and convert to a Phred33 score
@@ -313,15 +313,15 @@ function GenerateMiRNACounts(SAM_File::String)
     end
     miRNA_counts_dict = countmap(miRNA_names_list)
     miRNA_counts_dataframe = DataFrame([collect(keys(miRNA_counts_dict)), collect(values(miRNA_counts_dict))], [:name, :count])
-    sort!(miRNA_counts_dataframe, :2, rev = true)
+    sort!(miRNA_counts_dataframe, :count, rev = true)
 
     return miRNA_counts_dataframe
 end
 
 """
     miRNADiscoveryCalculation(Trimmed_Fastq_Files::Vector{String}
-                                    , Sample_Names::Vector{SubString{String}}
-                                    )
+                              , Sample_Names::Vector{SubString{String}}
+                              )
 
 Align trimmed fastq files to the single organism miRNA bowtie2 reference. 
 
@@ -371,7 +371,7 @@ function miRNADiscoveryCalculation(Trimmed_Fastq_Files::Vector{String}
                 -U $fastq_file
                 -S $sample_name.miRNA.sam`
                 , devnull)
-                ,wait = false
+                , wait = false
                 ))
 
         counts_df = GenerateMiRNACounts(string(sample_name, ".miRNA.sam"))
@@ -395,7 +395,7 @@ Plot counts of the number of unique miRNA each sample aligned to.
 
 #Example
 ```julia
-julia> PlotMiRNACounts(["sample1.hairpin.hist","sample2.hairpin.hist","sample3.hairpin.hist"]
+julia> PlotMiRNACounts([sample1_counts_df,sample2_counts_df,sample3_counts_df]
                         , ["sample1", "sample2", "sample3"])
 3-element Vector{String}:
  "sample1_miRNA_counts.csv"
@@ -645,7 +645,7 @@ function AlignWithBowtie2(Fastq_File::String, Read_Count_Dict::Dict{String, Int6
             -U $Fastq_File
             -S $sam_filename`
             , devnull)
-            ,wait = false
+            , wait = false
             ))
         else
             sam_filename = string(sample_name, ".miRNA.sam")
