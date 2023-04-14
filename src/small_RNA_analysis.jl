@@ -25,6 +25,127 @@ using Distances
 using PDFmerger
 
 """
+Function asks the user if they would like to use a non-human miRNA reference
+for use during the miRNA counting step. If yes, a new miRBase fasta is made.
+"""
+function CreateReferenceFile(Need_Reference::String)
+
+    #Set bowtie2 reference depending on whether or not a non-human reference was used
+    if Need_Reference === "y"
+        #Need to gather organism name to see if there are miRNA annotations for use in alignment later 
+        print("What is the scientific name of the organism you would like to use (e.g. mus musculus)?: ")
+        organism_name = readline()
+
+        bowtie2_reference_name  = CreateTargetOrganismFastaFile(organism_name)
+    else
+        bowtie2_reference_name  = "miRNA"
+    end
+
+    return bowtie2_reference_name
+end
+
+"""
+Create a file with a list of unique species names given a miRBase mature or hairpin fasta.
+"""
+function GetGenusNames(miRBase_Fasta::String)
+    miRNA_reference = GZip.open(miRBase_Fasta)
+    genus_dictionary = Dict{String, String}()
+
+    for line in eachline(miRNA_reference)
+        genus_abbreviation = match(r">\K\w+", line)
+        genus_name = match(r">.+MI\w+\s\K\w+", line)
+        if !isnothing(genus_name)
+            genus_dictionary[genus_name.match] = genus_abbreviation.match
+        end
+    end
+
+    close(miRNA_reference)
+
+    output_genus_file::IOStream = open("mirBase_genus_list.txt", "w")
+    for (genus, abbreviation) in genus_dictionary
+        write(output_genus_file, string(genus, ",", abbreviation, "\n"))
+    end
+
+    close(output_genus_file)
+end
+
+"""
+Function takes in mirBase mature miRNA fasta file with data from all available
+organisms and pulls out only the miRNA data pertaining to the target organism.
+"""
+function CreateTargetOrganismFastaFile(Organism_Name::String)
+
+    #Download miRBase mature miRNA sequence file
+    wait(run(pipeline(`wget 
+                https://www.mirbase.org/ftp/CURRENT/mature.fa.gz 
+                --no-check-certificate`
+                , devnull)
+                , wait = false
+             )
+	)
+
+    #Create file with all genuses with miRBase annotations
+    GetGenusNames("mature.fa.gz")
+
+    #Sets the target or organism's genus and species for labeling the output file
+    organism_genus_name::String = first(split(Organism_Name, " "))
+    organism_species_name::String = last(split(Organism_Name, " "))
+    target_genus_abbreviation = ""
+
+    #Opens the IO streams and sets the output file names for the fasta and bowtie2 index
+    genus_file::IOStream = open("mirBase_genus_list.txt", "r")
+    input_fasta_file = GZip.open("mature.fa.gz")
+    output_fasta_file::IOStream = open(organism_genus_name * "_" * organism_species_name * ".fa", "w")
+    output_fasta_file_name::String = organism_genus_name * "_" * organism_species_name * ".fa"
+    bowtie2_reference_name::String = organism_genus_name * "_" * organism_species_name
+
+    #Loops through file containing the genus of all the organisms with miRNA data
+    #If the target organism is in that list, the genus abbreviation is stored for use below
+    for line in eachline(genus_file)
+        if occursin(lowercase(organism_genus_name), lowercase(line))
+            target_genus_abbreviation = last(split(line, ","))
+            break
+        end
+    end
+
+    #=
+    Loops through mirBase mature miRNA fasta looking for the header and sequence information
+    for the target genus. If there's a match, that information is added to a new fasta file.
+    Must convert RNA sequences in miRBase fasta to DNA.
+    =#
+    for line in eachline(input_fasta_file)
+        input_genus_abbreviation = match(r">\K\w+", line)
+        if !isnothing(input_genus_abbreviation)
+            if target_genus_abbreviation == input_genus_abbreviation.match
+                write(output_fasta_file, line, "\n")
+                write(output_fasta_file, replace(readline(input_fasta_file), "U" => "T"))
+            end
+        end
+    end
+
+    close(input_fasta_file)
+    close(output_fasta_file)
+    close(genus_file)
+
+    #=
+    Uses the newly created single organism fasta to build a bowtie2 index; will be used
+    for alignment with mirUtils to determine miRNA count information.
+    =#
+    wait(run(pipeline(
+            `bowtie2-build 
+            $output_fasta_file_name 
+            data/$bowtie2_reference_name`
+            , devnull)
+            , wait = false
+            ))
+
+    TrashRemoval("mirBase_genus_list.txt")
+    TrashRemoval("mature.fa.gz")
+
+    return bowtie2_reference_name
+end
+
+"""
     CaptureTargetFiles(Files_To_Capture::String)
 
 List all files in the current directory. 
@@ -47,7 +168,8 @@ end
 """
 Update progress bar on the command line.
 """
-function ProgressBarUpdate(Number_of_Records::Int64, Interval::Number
+function ProgressBarUpdate(Number_of_Records::Int64
+                            , Interval::Number
                             , Description::String
                             )
     progress_bar_update = Progress(Number_of_Records
@@ -141,7 +263,6 @@ function DetermineLibraryType(Fastqs::Vector{String}
         #List to store each reads quality information
         q_score_list = Vector{Number}()
         #List to store each read's information
-        unique_start_sequences = Set{SubString{String}}()
         v3_miRNA_library_count = 0
         #Store dimer information
         v3_dimer_count = 0
@@ -197,8 +318,9 @@ function DetermineLibraryType(Fastqs::Vector{String}
         percent_v3_dimer = 100 * v3_dimer_count / sample_read_count
         percent_v4_dimer = 100 * v4_dimer_count / sample_read_count
 
-        #Percentage cutoff is somewhat arbitrary, though should hold for most cases
-        if percent_v3_miRNA_library > 5
+        #Percentage cutoff is somewhat arbitrary, though should hold for most cases.
+        #Won't work for low quality v3 samples.
+        if percent_v3_miRNA_library > 7.5
             library_type[sample_name] = "v3"
             dimer_count_dict[sample_name] = percent_v3_dimer
         else
@@ -243,7 +365,8 @@ julia> TrimAdapters(["sub_sample1.fastq","sub_sample2.fastq","sub_sample3.fastq"
  "sample3.cut.fastq"
 ```
 """
-function TrimAdapters(Fastqs::Vector{String}, Library_Type::Dict{String, String}
+function TrimAdapters(Fastqs::Vector{String}
+                        , Library_Type::Dict{String, String}
                         , Sample_Names::Vector{SubString{String}}
                         )
     number_of_records = length(Fastqs)
@@ -304,12 +427,12 @@ Create dataframe containing all aligned miRNA and the number of times they appea
 function GenerateMiRNACounts(SAM_File::String)
     miRNA_names_list = Vector{String}()
     open(SAM_File, "r") do sam_file
-	for line in eachline(sam_file)
-	    miRNA_name = match(r"0\s+\Kh[a-z-A-Z0-9]+", line)
-	    if !isnothing(miRNA_name)
-	        push!(miRNA_names_list, miRNA_name.match)
-	    end
-	end
+        for line in eachline(sam_file)
+            miRNA_name = match(r"0\s+\K[a-z][a-z-A-Z0-9]+", line)
+            if !isnothing(miRNA_name)
+                push!(miRNA_names_list, miRNA_name.match)
+            end
+        end
     end
     miRNA_counts_dict = countmap(miRNA_names_list)
     miRNA_counts_dataframe = DataFrame([collect(keys(miRNA_counts_dict)), collect(values(miRNA_counts_dict))], [:name, :count])
@@ -349,6 +472,7 @@ julia> miRNADiscoveryCalculation(["sample1.cut.fastq","sample2.cut.fastq","sampl
 """
 function miRNADiscoveryCalculation(Trimmed_Fastq_Files::Vector{String}
                                     , Sample_Names::Vector{SubString{String}}
+                                    , Bowtie2_Reference_Name::String
                                     )
     number_of_records = length(Trimmed_Fastq_Files)
     progress_bar_update = ProgressBarUpdate(number_of_records
@@ -367,7 +491,7 @@ function miRNADiscoveryCalculation(Trimmed_Fastq_Files::Vector{String}
                 `bowtie2
                 --norc
                 --threads 12
-                -x data/miRNA
+                -x data/$Bowtie2_Reference_Name
                 -U $fastq_file
                 -S $sample_name.miRNA.sam`
                 , devnull)
@@ -1125,53 +1249,56 @@ function CqVsMiRNACountCorrelation(qPCR_Data_File::String
     qPCR_data_table_full = DataFrame(CSV.File(qPCR_Data_File))
     common_miRNA_counts = DataFrame(CSV.File(Common_miRNA_File))
     RPM_dataframe = DataFrame(CSV.File(Common_miRNA_RPM_File))
-    next!(progress_bar_update)
+    #There must be at least two miRNA found in order to calculate correlation data
+    if first(size(common_miRNA_counts)) > 1
+        next!(progress_bar_update)
 
-    #Filter out measurements with no Cq value
-    qPCR_data_table::DataFrame = filter(:Cq => !=("NA"), qPCR_data_table_full)
+        #Filter out measurements with no Cq value
+        qPCR_data_table::DataFrame = filter(:Cq => !=("NA"), qPCR_data_table_full)
 
-    #Gather intersection between all common miRNA and miRNA list after removing filtered miRNA with no Cq value
-    common_miRNA = common_miRNA_counts[!, :miRNA] ∩ qPCR_data_table[!, :miRname]
+        #Gather intersection between all common miRNA and miRNA list after removing filtered miRNA with no Cq value
+        common_miRNA = common_miRNA_counts[!, :miRNA] ∩ qPCR_data_table[!, :miRname]
 
-    #Need to remove the rows with the miRNA filtered out above from the common miRNA RPM file
-    filtered_RPM_dataframe = filter(:miRNA => in(common_miRNA), RPM_dataframe)
-    next!(progress_bar_update)
+        #Need to remove the rows with the miRNA filtered out above from the common miRNA RPM file
+        filtered_RPM_dataframe = filter(:miRNA => in(common_miRNA), RPM_dataframe)
+        next!(progress_bar_update)
 
-    #Find Cqs for all common miRNAs, convert to Floats, and calculate the replicates' average Cq
-    average_cq_vector::Vector{Vector{Float64}} = map(
-        miRNA -> filter(:miRname => ==(miRNA), qPCR_data_table)[!, :Cq] 
-        .|> Cq -> parse(Float64, Cq)
-        , common_miRNA
-        )
-    average_cqs_values::Vector{Float64} = map(
-        cq_vector -> sum(cq_vector) |> num -> num / length(cq_vector), average_cq_vector
-        )
+        #Find Cqs for all common miRNAs, convert to Floats, and calculate the replicates' average Cq
+        average_cq_vector::Vector{Vector{Float64}} = map(
+            miRNA -> filter(:miRname => ==(miRNA), qPCR_data_table)[!, :Cq] 
+            .|> Cq -> parse(Float64, Cq)
+            , common_miRNA
+            )
+        average_cqs_values::Vector{Float64} = map(
+            cq_vector -> sum(cq_vector) |> num -> num / length(cq_vector), average_cq_vector
+            )
 
-    next!(progress_bar_update)
+        next!(progress_bar_update)
 
-    #Create new dataframe with the names of all common miRNAs and their Cq values
-    cq_miRNA_dataframe = zip(common_miRNA, average_cqs_values) |> DataFrame
+        #Create new dataframe with the names of all common miRNAs and their Cq values
+        cq_miRNA_dataframe = zip(common_miRNA, average_cqs_values) |> DataFrame
 
-    #Add Cq values and miRNA names to RPM data
-    combined_cq_RPM_dataframe::DataFrame = hcat(cq_miRNA_dataframe, filtered_RPM_dataframe[!, 2:end])
-    rename!(combined_cq_RPM_dataframe, :1 => :miRNA, :2 => :Cq)
+        #Add Cq values and miRNA names to RPM data
+        combined_cq_RPM_dataframe::DataFrame = hcat(cq_miRNA_dataframe, filtered_RPM_dataframe[!, 2:end])
+        rename!(combined_cq_RPM_dataframe, :1 => :miRNA, :2 => :Cq)
 
-    #Pearson's correlation coefficient analysis between the qPCR values and the log10 of miRNA counts
-    correlation_coeffs::Vector{Float64} = map( 
-        sample -> cor(combined_cq_RPM_dataframe[!, :Cq], map(log10, combined_cq_RPM_dataframe[!, sample]))
-        , Sample_Names
-        )
+        #Pearson's correlation coefficient analysis between the qPCR values and the log10 of miRNA counts
+        correlation_coeffs::Vector{Float64} = map( 
+            sample -> cor(combined_cq_RPM_dataframe[!, :Cq], map(log10, combined_cq_RPM_dataframe[!, sample]))
+            , Sample_Names
+            )
 
-    correlation_dataframe = DataFrame(hcat(Sample_Names, correlation_coeffs), [:sample, :corr_coeff])
+        correlation_dataframe = DataFrame(hcat(Sample_Names, correlation_coeffs), [:sample, :corr_coeff])
 
-    #Find samples with correlation values < -.6
-    negative_correlation_samples::Vector{String} = Sample_Names[correlation_coeffs.<(-.6)]
+        #Find samples with correlation values < -.6
+        negative_correlation_samples::Vector{String} = Sample_Names[correlation_coeffs.<(-.6)]
 
-    #Write correlation values to output file
-    CSV.write("Sample_correlation_coefficients.csv", correlation_dataframe)
-    next!(progress_bar_update)
+        #Write correlation values to output file
+        CSV.write("Sample_correlation_coefficients.csv", correlation_dataframe)
+        next!(progress_bar_update)
 
-    return negative_correlation_samples, combined_cq_RPM_dataframe
+        PlotLinearRegressionCqVsMiRNAReadCount(negative_correlation_samples, combined_cq_RPM_dataframe)
+    end
 end
 
 """
@@ -1238,6 +1365,10 @@ function TrashRemoval(Files_to_Delete::Vector{String})
     end
 end
 
+function TrashRemoval(File_to_Delete::String)
+    rm(File_to_Delete)
+end
+
 """
 Remove all intermediate files.
 """
@@ -1245,10 +1376,8 @@ function GarbageCollection()
     Files_to_Delete = Set(vcat(
     CaptureTargetFiles(".bam")
     ,CaptureTargetFiles(".cut.fastq")
-    ,CaptureTargetFiles("sub_")
     ,CaptureTargetFiles("read_lengths_")
     ,CaptureTargetFiles(".miRNA.")
-    ,CaptureTargetFiles("v22_cluster")
     ,CaptureTargetFiles(".cutadapt_information")
     ,CaptureTargetFiles(".sam")
     ))
@@ -1259,6 +1388,9 @@ function GarbageCollection()
 end
 
 function julia_main()::Cint
+    print("Would you like to use a non-human miRNA reference for alignment? (y/n): ")
+    need_reference::String = readline()
+    Bowtie2_Reference_Name = CreateReferenceFile(need_reference)
 
     #Say hello Trish!
     run(`echo " "`)
@@ -1306,29 +1438,34 @@ function julia_main()::Cint
                                                                                         , Sample_Names)
     Trimmed_Fastqs = TrimAdapters(Fastqs, Library_Type, Sample_Names)
     miRNA_Counts_Dfs, SAM_Files = miRNADiscoveryCalculation(Trimmed_Fastqs
-                                                                                        , Sample_Names)
+                                                            , Sample_Names
+                                                            , Bowtie2_Reference_Name)
 
     Length_Files = CalculateReadLengthDistribution(SAM_Files, Sample_Names)
     PlotFragmentLengths(Length_Files, Sample_Names)
     miRNA_Counts_Files = PlotMiRNACounts(miRNA_Counts_Dfs, Sample_Names)
     Metrics_File = CalculateMetrics(Trimmed_Fastqs
-                                            , Read_Count_Dict
-                                            , Sample_Names
-                                            , Dimer_Count_Dict
-                                            , Q_Score_Dict)
+                                    , Read_Count_Dict
+                                    , Sample_Names
+                                    , Dimer_Count_Dict
+                                    , Q_Score_Dict)
     PlotMetrics(Metrics_File, Library_Type, Sample_Names)
     ViolinPlotMetrics(Metrics_File)
     Full_miRNA_Names_List, miRNA_Info, RPM_Info = FindCommonMiRNAs(miRNA_Counts_Files
                                                                     , Read_Count_Dict
                                                                     , Sample_Names)
     WriteCommonMiRNAFile(Full_miRNA_Names_List, miRNA_Info, RPM_Info, Sample_Names)
-    Correlated_Samples, Cq_RPM_Dataframe = CqVsMiRNACountCorrelation("qpcr_raw_data.csv"
-                                                                    , "Common_RPM_miRNAs.tsv"
-                                                                    , "Common_miRNAs.tsv"
-                                                                    , Sample_Names
-                                                                    )
-    PlotLinearRegressionCqVsMiRNAReadCount(Correlated_Samples, Cq_RPM_Dataframe)
+    if isfile("qpcr_raw_data.csv")
+        CqVsMiRNACountCorrelation("qpcr_raw_data.csv"
+                                , "Common_RPM_miRNAs.tsv"
+                                , "Common_miRNAs.tsv"
+                                , Sample_Names
+                                )
+    end
     GarbageCollection()
+    println(" ")
+    println("Analysis Finished")
+    println(" ")
 
     return 0
 end
