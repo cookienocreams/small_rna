@@ -34,13 +34,12 @@ using PackageCompiler
 PackageCompiler.create_app("./", "/home/user/sRNA_app", incremental=true, precompile_execution_file="./src/small_RNA_analysis.jl", include_lazy_artifacts=true)
 ```
 
-The app can be run using the small_RNA_analysis executable in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` and `qpcr_raw_data.csv`* files must be downloaded and placed into the folder with the fastqs to be analyzed too.
+The app can be run using the small_RNA_analysis executable in the `/home/user/sRNA_app/bin` folder in a folder containing fastqs to be analyzed. Note that currently the `data` reference files must be downloaded and placed into the folder with the fastqs to be analyzed too.
 
 ```bash
 cd fastqs
 /home/user/sRNA_app/bin/small_RNA_analysis
 ```
+`qpcr_raw_data.csv`* file is optional. You can swap in your data by including the data in a file called `qpcr_raw_data.csv` in the analysis directory with your fastqs.
 
 *qPCR data from here: Maguire, S.et al. (2020). A low-bias and sensitive small RNA library preparation method using randomized splint ligation. Nucleic Acids Research, 48(14). https://doi.org/10.1093/nar/gkaa480. The data is for human brain samples, but can be swapped for qPCR data for other sample types.
-
-You can also download a pre-made executable folder here: https://drive.google.com/file/d/1mQ6V5OG9qdl_X2I37MqgM1fwHpjK5xpT/view?usp=share_link
