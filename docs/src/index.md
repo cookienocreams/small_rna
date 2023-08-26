@@ -7,7 +7,7 @@
 
 ## Functions
 
-Documentation for Phaj.jl
+Documentation for small_rna.jl
 ```@docs
 MissingReferenceError
 Config
