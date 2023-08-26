@@ -1,7 +1,5 @@
 # NEXTFLEX Small RNA Analysis
 
-[![Build Status](https://github.com/mike/small_rna.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/mike/small_rna.jl/actions/workflows/CI.yml?query=branch%3Amain)
-
 ## Installation instructions
 
 Create executable to run on local machine using the `julia` library `PackageCompiler`:
