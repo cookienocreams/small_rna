@@ -1,5 +1,10 @@
 # NEXTFLEX Small RNA Analysis
 
+## Script dependencies
+- bowtie2
+- samtools
+- cutadapt
+  
 ## Installation instructions
 
 Create executable to run on local machine using the `julia` library `PackageCompiler`:
