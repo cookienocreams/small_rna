@@ -4,6 +4,6 @@ makedocs(sitename="NEXTFLEX Small RNA Anlaysis Documentation")
 
 deploydocs(
     repo = "github.com/cookienocreams/small_rna.git"
-    , branch = "gh-pages"
+    , branch = "docs"
     , devbranch = "main"
 )
