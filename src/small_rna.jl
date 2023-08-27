@@ -305,7 +305,7 @@ function parse_fastqs(fastqs::Vector{String}
     number_of_records = length(fastqs)
     update_progress_bar = progress_bar_update(number_of_records
                                             , .5
-                                            , "Determining sample library type..."
+                                            , "Parsing fasta file..."
                                             )
 
     # Skip first 8 bp for v3 libraries, which would be 4N + 4N
