@@ -46,6 +46,32 @@ There are numerous options that can be changed if desired. Use `-h` or `--help` 
 ```bash
 /home/user/small_rna_app/bin/small_rna --help
 ```
+Which outputs:
+```
+usage: Small RNA Analysis [-l LIBRARY] [-f FASTA] [-O ORGANISM]
+                        [-p THREADS] [-h]
+
+Basic analysis of NEXTFLEX Small RNA libraries.
+
+optional arguments:
+  -l, --library LIBRARY
+                        The type of sample library, either 'v4' or
+                        'v3'. (default: "v4")
+  -f, --fasta FASTA     The full path to a miRNA fasta file, e.g.,
+                        /home/user/mirna.fa. (default:
+                        "data/mirgene.fas")
+  -O, --organism ORGANISM
+                        Abbreviated name of organism, e.g., 'hsa' for
+                        human or 'mmu' for mouse. This should match
+                        the standard three letter abbreviation found
+                        in miRNA databases such as miRBase and
+                        MirGeneDB. (default: "hsa")
+  -p, --threads THREADS
+                        The number of processors to use for alignment.
+                        (type: Int64, default: 12)
+  -h, --help            show this help message and exit
+
+```
 
 ## Basic usage
 
