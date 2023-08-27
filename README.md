@@ -1,5 +1,7 @@
 # NEXTFLEX Small RNA Analysis
 
+[![CI](https://github.com/cookienocreams/small_rna/actions/workflows/CI.yml/badge.svg)](https://github.com/cookienocreams/small_rna/actions/workflows/CI.yml)
+
 ## Script dependencies
 - bowtie2
 - samtools
