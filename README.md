@@ -11,7 +11,7 @@ Create executable to run on local machine using the `julia` library `PackageComp
 
 You will need to have Julia installed on your computer before starting. Julia can be installed from here: https://julialang.org/downloads/
 
- # Note: This currently only supports the Upcoming release: v1.10.0-beta2
+ ## Note: This currently only supports the Upcoming release: v1.10.0-beta2
  There is a bug in the Plots library that prevents packages from being complied using PackageCompiler.
  It should be fixed in v1.10, once that releases. Versions < v1.8.5 may also work.
 
