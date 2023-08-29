@@ -24,6 +24,7 @@ UMAP = "c4f8c510-2410-5be4-91d7-4fbaeb39457e"
 XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
 
 [compat]
+StatsBase = "0.34"
 StatsPlots = "0.15"
 julia = "1"
 
