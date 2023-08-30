@@ -25,6 +25,7 @@ XAM = "d759349c-bcba-11e9-07c2-5b90f8f05f7c"
 
 [compat]
 StatsPlots = "0.15"
+UMAP = "0.1"
 julia = "1"
 
 [extras]
