@@ -25,6 +25,7 @@ using PDFmerger
 using XAM
 using ArgParse
 
+export MissingFastqsError
 export MissingReferenceError
 export Config
 export get_genus_names
@@ -62,6 +63,17 @@ struct MissingReferenceError <: Exception
 end
 
 """
+    struct MissingFastqsError
+        message::String
+    end
+
+A structure that represents a custom exception for missing fastq files.
+"""
+struct MissingFastqsError <: Exception
+    message::String
+end
+
+"""
     struct Config
         library::Union{String, Nothing}
         fasta::Union{String, Nothing}
@@ -81,18 +93,25 @@ struct Config
     fasta::Union{String, Nothing}
     organism::Union{String, Nothing}
     threads::Int
+    fastqs::Vector{String}
+    sample_names::Vector{SubString{String}}
 
     # Constructor with error checks, Union stores possibility of no argument being passed
     function Config(library::Union{String, Nothing}, fasta::Union{String, Nothing}
-                    , organism::Union{String, Nothing}, threads::Int
+                    , organism::Union{String, Nothing}, threads::Int, fastqs::Vector{String}
+                    , sample_names::Vector{SubString{String}}
         )
+
+        if isnothing(fastqs)
+            throw(MissingFastqsError("No fastq files found. Expected files with '_R1_001.fastq.gz'."))
+        end
 
         # Check if user specified a real miRNA file
         if !isfile(fasta)
             throw(MissingReferenceError("No miRNA reference found"))
         end
         
-        new(library, fasta, organism, threads)
+        new(library, fasta, organism, threads, fastqs, sample_names)
     end
 end
 
@@ -1461,12 +1480,17 @@ function parse_commandline()
 
     args = parse_args(arguments)
 
+    fastqs = capture_target_files("_R1_001.fastq.gz")
+    sample_names = map(sample -> first(split(sample, "_")), fastqs)
+
     # Create a Config instance from parsed arguments
     config = Config(
         get(args, "library", "v4"),
         get(args, "fasta", "data/mirgene.fas"),
         get(args, "organism", "hsa"),
-        get(args, "threads", 12)
+        get(args, "threads", 12),
+        fastqs,
+        sample_names
     )
 
     return config
@@ -1522,8 +1546,6 @@ function julia_main()::Cint
     run(`echo -e "\t\t\e[0;31mBut\e[0m \e[1;31myou\e[0m \e[1;33mcan\e[0m \e[1;32mcall\e[0m \e[0;36mme\e[0m \e[1;35mTrish...\e[0m "`)
     run(`echo " "`)
 
-    fastqs = capture_target_files("_R1_001.fastq.gz")
-    sample_names = map(sample -> first(split(sample, "_")), fastqs)
     read_count_dict, dimer_count_dict, q_score_dict = parse_fastqs(fastqs
                                                                     , sample_names
                                                                     , config.library
