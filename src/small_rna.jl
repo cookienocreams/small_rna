@@ -93,25 +93,28 @@ struct Config
     fasta::Union{String, Nothing}
     organism::Union{String, Nothing}
     threads::Int
-    fastqs::Vector{String}
-    sample_names::Vector{SubString{String}}
 
     # Constructor with error checks, Union stores possibility of no argument being passed
     function Config(library::Union{String, Nothing}, fasta::Union{String, Nothing}
-                    , organism::Union{String, Nothing}, threads::Int, fastqs::Vector{String}
-                    , sample_names::Vector{SubString{String}}
+                    , organism::Union{String, Nothing}, threads::Int
         )
-
-        if isnothing(fastqs)
-            throw(MissingFastqsError("No fastq files found. Expected files with '_R1_001.fastq.gz'."))
-        end
 
         # Check if user specified a real miRNA file
         if !isfile(fasta)
             throw(MissingReferenceError("No miRNA reference found"))
         end
         
-        new(library, fasta, organism, threads, fastqs, sample_names)
+        new(library, fasta, organism, threads)
+    end
+end
+"""
+Check if there are fastq files in the current directory
+"""
+function check_for_fastqs()
+    fastqs = capture_target_files("_R1_001.fastq.gz")
+
+    if isempty(fastqs)
+        throw(MissingFastqsError("No fastq files found. Expected files with '_R1_001.fastq.gz'"))
     end
 end
 
@@ -995,17 +998,17 @@ function plot_metrics(metrics_file::String
                         , sample_names::Vector{SubString{String}}
                         )
 
-    metrics_file::DataFrame = CSV.read(metrics_file, DataFrame)
+    metrics_df::DataFrame = CSV.read(metrics_file, DataFrame)
 
-    select!(metrics_file, Not([:Sample, Symbol("Read_Count")]))
-    column_names::Vector{String} = names(metrics_file)
-    num_of_cols = last(size(metrics_file))
+    select!(metrics_df, Not([:Sample, Symbol("Read_Count")]))
+    column_names::Vector{String} = names(metrics_df)
+    num_of_cols = last(size(metrics_df))
 
     colors = [:snow3, :honeydew2, :lightpink, :bisque2, :deepskyblue, :aquamarine3
             , :peachpuff, :paleturquoise1, :orange1, :lightsalmon2
     ]
     
-    sample_rows(row) = [values for values in metrics_file[row, :]]
+    sample_rows(row) = [values for values in metrics_df[row, :]]
 
     number_of_records = length(sample_names)
     update_progress_bar = progress_bar_update(number_of_records
@@ -1036,7 +1039,7 @@ function plot_metrics(metrics_file::String
             , y
             , strokewidth = 1
             , strokecolor = :black
-            , color = colors
+            , color = colors[1:num_of_cols]
             , bar_labels = :y
         )
 
@@ -1480,18 +1483,15 @@ function parse_commandline()
 
     args = parse_args(arguments)
 
-    fastqs = capture_target_files("_R1_001.fastq.gz")
-    sample_names = map(sample -> first(split(sample, "_")), fastqs)
-
     # Create a Config instance from parsed arguments
     config = Config(
         get(args, "library", "v4"),
         get(args, "fasta", "data/mirgene.fas"),
         get(args, "organism", "hsa"),
         get(args, "threads", 12),
-        fastqs,
-        sample_names
     )
+
+    check_for_fastqs()
 
     return config
 end
@@ -1505,6 +1505,10 @@ function julia_main()::Cint
 
     # Make miRNA bowtie2 reference if necessary
     create_target_organism_fasta_file(config.organism, config.fasta)
+
+    # Get sample names
+    fastqs = capture_target_files("_R1_001.fastq.gz")
+    sample_names = map(sample -> first(split(sample, "_")), fastqs)
 
     #Say hello Trish!
     run(`echo " "`)
